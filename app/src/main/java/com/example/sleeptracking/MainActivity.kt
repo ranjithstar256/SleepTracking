@@ -1,5 +1,6 @@
 package com.example.sleeptracking
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,13 +15,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
+import androidx.room.Room
+import com.example.jetpackroomdb.SleepData
+import com.example.jetpackroomdb.TodoDatabase
+import com.example.jetpackroomdb.TodoDatabaseDao
 import com.example.sleeptracking.ui.theme.SleepTrackingTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,12 +35,21 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    
-                   Greeting()
+                    lateinit var todoDao: TodoDatabaseDao
+
+                    var db: TodoDatabase =
+                        Room.inMemoryDatabaseBuilder(applicationContext, TodoDatabase::class.java)
+                            .allowMainThreadQueries()
+                            .build()
+                    todoDao = db.todoDao()
+                   Greeting(todoDao)
+
                 }
             }
         }
     }
+
+
 }
 
 /*@Composable
@@ -54,13 +66,14 @@ fun Timr(){
     }
 }*/
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-fun Greeting() {
+fun Greeting(todoDao: TodoDatabaseDao) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         var b by remember {
             mutableStateOf(false)
         }
-        var ticks by remember { mutableStateOf(0) }
+        var ticks by remember { mutableStateOf(6000) }
         var status by remember { mutableStateOf("") }
         var result by remember { mutableStateOf(0) }
 
@@ -91,6 +104,14 @@ fun Greeting() {
         }
 
         var min = (result).div(60).toDouble()
+
+        val itm = SleepData(6,"2023",min.toString())
+
+        val scope = rememberCoroutineScope()
+        scope.launch {
+            todoDao.insert(itm)
+        }
+
         if (min<60){
             Text(text = "You have slept for $min Seconds")
         } else{
